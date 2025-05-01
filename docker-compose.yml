@@ -1,0 +1,48 @@
+
+version: "3"
+
+services:
+  redis-db:
+    image: redis:7
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./data:/data
+    user: "1000:1000"
+    command: ["--save", "1", "1"]
+    networks:
+      - app-network
+
+  flask-app:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    depends_on:
+      - redis-db
+    environment:
+      - REDIS_HOST=redis-db
+    image: username/ml_app:1.0
+    ports:
+      - "5000:5000"
+    networks:
+      - app-network
+    command: ["python", "/code/salamanders_api.py"]
+
+  worker:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    depends_on:
+      - redis-db
+    environment:
+      - REDIS_HOST=redis-db
+      - LOG_LEVEL=WARNING
+    image: username/ml_app:1.0
+    networks:
+      - app-network
+    command: ["python", "/code/worker.py"]
+
+networks:
+  app-network:
+    driver: bridge
+
